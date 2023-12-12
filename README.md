@@ -10,3 +10,5 @@ File information structure
     file size
     file unix permission format
     file last modified date in RFC822 format
+
+# Versão 1.2+252
