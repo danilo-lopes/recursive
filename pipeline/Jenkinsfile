@@ -20,6 +20,10 @@ pipeline {
     }
 
     stage('Stage Pre Release - Build') {
+      when {
+        branch pattern: 'main', comparator: "REGEXP"
+      }
+
       parallel {
         stage('Stage Pre Release - Build IOS') {
           steps {
