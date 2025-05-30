@@ -1,3 +1,3 @@
 module github.com/danilo-lopes/recursive
 
-go 1.19
+go 1.24

@@ -1,67 +1,75 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"io/fs"
-	"io/ioutil"
 	"os"
-	"time"
 )
 
-type fileObject struct {
+type unix_file struct {
+	name             string
 	location         string
-	size             uint64
-	permissions      fs.FileMode
+	size             int64
+	permissions      string
 	lastModifiedDate string
 }
 
-var stored []string
-var objectFiles []fileObject
-
-func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("Usage:", "program", "base directory path")
-		os.Exit(1)
+func bitwisePermission(bits int) string {
+	var permission string
+	if bits&4 != 0 {
+		permission += "r"
+	} else {
+		permission += "-"
 	}
-
-	dir := os.Args[1]
-	files := returnAllFilesFromBaseDir(dir)
-
-	for _, file := range files {
-		var object fileObject
-
-		fileInfo, err := os.Stat(file)
-		if err != nil {
-			panic(err)
-		}
-
-		object.location = file
-		object.size = uint64(fileInfo.Size())
-		object.permissions = fileInfo.Mode()
-		object.lastModifiedDate = fileInfo.ModTime().Format(time.RFC822)
-
-		objectFiles = append(objectFiles, object)
+	if bits&2 != 0 {
+		permission += "w"
+	} else {
+		permission += "-"
 	}
-
-	for _, fileInfo := range objectFiles {
-		fmt.Println(fileInfo)
+	if bits&1 != 0 {
+		permission += "x"
+	} else {
+		permission += "-"
 	}
+	return permission
 }
 
-func returnAllFilesFromBaseDir(baseDirPath string) []string {
-	content, err := ioutil.ReadDir(baseDirPath)
+var files []unix_file
+
+func getFilesFromDir(path string) []unix_file {
+	dir_content, err := os.ReadDir(path)
 	if err != nil {
 		panic(err)
 	}
-
-	for _, file := range content {
-		if file.IsDir() {
-			returnAllFilesFromBaseDir(baseDirPath + "/" + file.Name())
+	for _, object := range dir_content {
+		if object.IsDir() {
+			getFilesFromDir(path + "/" + object.Name())
 			continue
 		}
-
-		stored = append(stored, baseDirPath+"/"+file.Name())
+		objectInfo, err := object.Info()
+		if err != nil {
+			panic(err)
+		}
+		file := unix_file{
+			name:             objectInfo.Name(),
+			location:         path + "/" + objectInfo.Name(),
+			size:             objectInfo.Size(),
+			permissions:      bitwisePermission(int(objectInfo.Mode())),
+			lastModifiedDate: objectInfo.ModTime().Format("2006-01-02T15:04:05"),
+		}
+		files = append(files, file)
 	}
+	return files
+}
 
-	return stored
+func main() {
+	dir := flag.String("directory", "", "directory to list files")
+	flag.Parse()
+
+	if *dir == "" {
+		fmt.Fprintln(os.Stderr, "Error: missing parameter --directory")
+		flag.Usage()
+		os.Exit(1)
+	}
+	fmt.Println(getFilesFromDir(*dir))
 }
