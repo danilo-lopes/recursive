@@ -67,8 +67,7 @@ func main() {
 	flag.Parse()
 
 	if *dir == "" {
-		fmt.Fprintln(os.Stderr, "Error: missing parameter --directory")
-		flag.Usage()
+		fmt.Println("Error: missing parameter --directory")
 		os.Exit(1)
 	}
 	fmt.Println(getFilesFromDir(*dir))
